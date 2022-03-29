@@ -23,73 +23,100 @@
       </nav>
     <div class="container">
       <form id="formbu">
-        <h5>Générer mon menu</h5>
+        <h5>Générer mon menu "<span id="saison" class="text-capitalize"></span>"</h5>
         
-        <table class="table">
+        <table id="semainier" class="table">
           <thead class="thead-light">
             <tr>
-              <th scope="col"></td>
-              <th scope="col">Jour 1</td>
-              <th scope="col">Jour 2</td>
-              <th scope="col">Jour 3</td>
-              <th scope="col">Jour 4</td>
-              <th scope="col">Jour 5</td>
-              <th scope="col">Jour 6</td>
-              <th scope="col">Jour 7</td>
+              <th scope="col"></th>
+              <th scope="col">Jour 1</th>
+              <th scope="col">Jour 2</th>
+              <th scope="col">Jour 3</th>
+              <th scope="col">Jour 4</th>
+              <th scope="col">Jour 5</th>
+              <th scope="col">Jour 6</th>
+              <th scope="col">Jour 7</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <th scope="row">Midi</td>
-              <td><input type="checkbox" name="midi-1"></td>
-              <td><input type="checkbox" name="midi-2"></td>
-              <td><input type="checkbox" name="midi-3"></td>
-              <td><input type="checkbox" name="midi-4"></td>
-              <td><input type="checkbox" name="midi-5"></td>
-              <td><input type="checkbox" name="midi-6"></td>
-              <td><input type="checkbox" name="midi-7"></td>
-            </tr>
-            <tr>
-              <th scope="row">Soir</td>
-              <td><input type="checkbox" name="soir-1"></td>
-              <td><input type="checkbox" name="soir-2"></td>
-              <td><input type="checkbox" name="soir-3"></td>
-              <td><input type="checkbox" name="soir-4"></td>
-              <td><input type="checkbox" name="soir-5"></td>
-              <td><input type="checkbox" name="soir-6"></td>
-              <td><input type="checkbox" name="soir-7"></td>
-            </tr>
+
           </tbody>
         </table>
-        <button class="btn btn-primary" id="validButton" type="button">Valider <span class="badge badge-light"></span></button>
+        <button class="btn btn-primary" id="validAllButton" type="button">Valider la semaine<span class="badge badge-light"></span></button>
+        <button class="btn btn-secondary" id="validButton" type="button">Valider la sélection<span class="badge badge-light"></span></button>
     </body>
     <script>
       var nbJour = 0;
-      
+      var saisons = ["Printemps","Eté","Automne","Hiver"];
+
       $(function() {
+        reinit();
         $('#nbRepas').find('option').remove();
         for(i = 1; i<15; i++){
           $('#nbRepas').append(`<option>${i}</option>`);
         }
+
+        $('input:checkbox[name^="all"]').click(function(e) {
+          var name = $(this).attr('name').split("-")[1];
+          $(`input:checkbox[name^="${name}"]`).prop('checked', $(e.target).prop('checked'));
+        });
+
+        $('input:checkbox').change(function() {
+          nbJour = $('input:checkbox:checked:not([name^="all"])').length;
+          $('#validButton span').text(nbJour);
+        });
+
+        $('#validButton').click(function() {
+          google.script.run.withSuccessHandler(showMenu).retrieveRecipes(Math.round(nbJour/2));
+        });
+
+        $('#validAllButton').click(function() {
+          reinit();
+          $('input:checkbox:not([name^="all"])').prop('checked',true);
+          google.script.run.withSuccessHandler(showMenu).retrieveRecipes(7);
+        });
       });
-        
-      function showMenu(items) {
-        const list = $('input:checkbox:checked');
-        
-        for(var i=0; i< list.length; i++){
-          var recette = items[Math.round(i/3)][1] != '' ? `<a href="${items[Math.round(i/3)][1]}" target="_blank">${items[Math.round(i/3)][0]}</a></td>` : items[Math.round(i/3)][0];
- 
-          $(`input[name="${list[i].name}"]`).parent().html(recette);
-        }
+
+      function createTable(){
+        var colMidi = createColumns('midi');
+        var colSoir = createColumns('soir');
+        var table = `<tr><th scope="row"><input type="checkbox" name="all-midi"> Midi</th>${colMidi}</tr>` +
+        `<tr><th scope="row"><input type="checkbox" name="all-soir"> Soir</td>${colSoir}</tr>`;
+        return table;
       }
 
-      $('input:checkbox').change(function() {
-        nbJour = $('input:checkbox:checked').length;
-        $('#validButton span').text(nbJour);
-      });
+      function createColumns(repas){
+        var cols = '';
+        for(var i=1; i<8; i++){
+          cols += `<td><input type="checkbox" name="${repas}-${i}"></td>`;
+        }
+        return cols;
+      }
 
-      $('#validButton').click(function() {
-        google.script.run.withSuccessHandler(showMenu).retrieveRecipes(Math.round(nbJour/2));
-      });
+      function randomize(a, b) {
+        return 0.5 - Math.random();
+      }
+
+      function reinit(){
+        var checkboxTable = createTable();
+        $('#semainier > tbody').html(checkboxTable);
+        google.script.run.withSuccessHandler(displaySeason).getSeason();
+      }  
+
+      function displaySeason(feedback){
+        $('#saison').html(saisons[feedback-1]);
+      }
+
+      function showMenu(items) {
+        const list = $('input:checkbox:checked:not([name^="all"])');
+        list.sort(randomize);
+        for(var i=1; i<=list.length; i++){
+          var rank =  Math.round(i/2);
+          console.log(`Rank : ${rank} \nValue : ${items[rank]}`)
+          var recette = items[rank][1] != '' ? `<a href="${items[rank][1]}" target="_blank">${items[rank][0]}</a></td>` : items[rank][0];
+ 
+          $(`input[name="${list[i-1].name}"]`).parent().html(recette);
+        }
+      }
     </script>
 </html>
