@@ -38,12 +38,15 @@ function shuffle(array) {
 function retrieveRecipes(nb){
     const recetteList = [];
     var seasonRecipes = RECETTES.filter(filtreSaison);
+    //Logger.log(seasonRecipes)
     seasonRecipes.forEach(function(row) {
         if(row[0] != ''){
           recetteList.push(row);
         }
     });
+    
     recetteList.splice(0, 1);
+    Logger.log(recetteList)
     return shuffle(recetteList);
 }
 
@@ -70,7 +73,8 @@ function getSeason(){
 }
 
 function filtreSaison(arr){ 
-  return arr[MY_SEASON.getValue()+1] === true;
+  // +2 for 2 columns before start of seasons in recettes tab
+  return arr[MY_SEASON.getValue()+2] === true;
 }
 
 function doGet() {
